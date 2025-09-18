@@ -10,8 +10,9 @@ with open("config.json", encoding="utf-8") as f:
         ethnic_minority = configs["ethnic_minority"]
         output = configs["output"]
         rank = configs["rank"]
+        thread_num = configs["thread_num"]
     
 if __name__ == "__main__":
     print("author 啊这.")
     print("仓库地址:\nhttps://github.com/azheea/score_to_school")
-    process.process(province_id, want, year, ethnic_minority,output,rank,output)
+    process.process(province_id, want, year, thread_num, ethnic_minority,output,rank) 
