@@ -1,6 +1,8 @@
 import json
 from concurrent.futures import ThreadPoolExecutor
 import os
+import random
+import time
 import Get_informations.GetScore as GetScore
 import Get_informations.Get_province_id as Get_Province_Id
 import Get_informations.Get_school_id as Get_School_Id
@@ -14,6 +16,7 @@ def process(province_id, want, year, thread_num, ethnic_minority,output,rank):
     all_school_id = Get_School_Id.get_school_ids()  # 获取学校名称与ID的映射
     results = []
     for school_name, school_id in all_school_id.items():
+        time.sleep(random.uniform(0.1, 0.3))
         if "学院" in school_name or "职业" in school_name:
             continue
         try:
