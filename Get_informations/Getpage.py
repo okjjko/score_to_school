@@ -1,6 +1,12 @@
 import requests
-import time
-def getpage(page:int,schoolId:int,provinceId:int,year:int):
+
+
+class RateLimitError(Exception):
+    """触发目标站点「请求过多」风控。由上层捕获后重试。"""
+    pass
+
+
+def getpage(page, schoolId, provinceId, year):
     params = {
         "local_province_id": provinceId,
         "page": page,
@@ -16,6 +22,10 @@ def getpage(page:int,schoolId:int,provinceId:int,year:int):
     }
     response = requests.get("https://api.zjzw.cn/web/api/", params=params, headers=headers)
 
-    if ("请求过多，请稍后再试" in response.text) == False:
-        data = ((response.json()).get("data")).get("item", "none")
-    return data
+    # 风控：抛明确异常，由上层 process 的 except 捕获后进入重试等待
+    # （原版此处 data 未定义直接 return 会抛 UnboundLocalError，行为相同但语义更清晰）
+    if "请求过多，请稍后再试" in response.text:
+        raise RateLimitError("请求过多，请稍后再试")
+
+    data = response.json().get("data", {}).get("item", [])
+    return data if data is not None else []

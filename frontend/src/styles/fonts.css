@@ -1,0 +1,5 @@
+/* 衬线标题（Copernicus / Tiempos Headline 的开源替代）+ 人文无衬线正文 + 等宽代码。
+   使用国内镜像 fonts.loli.net 以保证大陆可访问（fonts.googleapis.com 被墙）。 */
+@import url('https://fonts.loli.net/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+/* 中文衬线（标题）/ 中文无衬线（正文）—— 思源宋体 / 思源黑体 */
+@import url('https://fonts.loli.net/css2?family=Noto+Serif+SC:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;600&display=swap');

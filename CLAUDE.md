@@ -72,3 +72,56 @@ guess.py                   # 一元线性回归工具，根据历史年份数据
   }
 ]
 ```
+
+## Web 界面（Vue 3 + FastAPI）
+
+除命令行外，项目提供完整 Web 界面，设计风格遵循 Anthropic Claude 设计系统（暖奶油画布 `#faf9f5` + 珊瑚色主 CTA `#cc785c` + Cormorant Garamond/Noto Serif SC 衬线标题）。
+
+### 启动
+
+```bash
+# 1) 后端（必须在项目根目录运行，单 worker）
+python -m uvicorn web.app:app --port 8000
+#    注意：用 `python -m uvicorn` 而非 `uvicorn`，确保用装了依赖的 Python 环境；
+#    多 worker 会让任务状态分裂（任务字典在进程内）。
+
+# 2) 前端（另开终端）
+cd frontend
+npm install
+npm run dev   # http://localhost:5173 ，自动代理 /api -> :8000
+```
+
+### 架构
+
+```
+web/                        # FastAPI 后端，复用现有 Python 逻辑
+  app.py                    # FastAPI 入口：CORS、路由注册、chdir 到项目根、单 worker 警告
+  task_manager.py           # 任务字典 + 后台线程 + cancel_event + 暂停/取消状态机
+  config_io.py              # config.json 读写
+  progress_adapter.py       # progress.db 读写（断点续传列表/删除）
+  results_repo.py           # 扫描 *_学校分数排行.json、读单文件（路径白名单防穿越）
+  meta.py                   # 31 省 ID↔名称、学校数统计
+  routes/                   # /api/config /api/task/* /api/resume /api/results /api/predict
+frontend/                   # Vue 3 + Vite + Pinia + Vue Router + Tailwind + ECharts
+  src/styles/{tokens,fonts,base}.css   # 设计 token → CSS 变量（样式唯一源头）
+  src/components/ui/        # CButton/CCard/DarkSurface/CInput/CSelect/CBadge/CTabs/CProgress/CSwitch
+  src/views/                # ConfigScrape（配置+实时进度）/ Results / Predict / History
+```
+
+### 任务模型
+
+抓取单次可运行数小时（反爬限速 + 风控），HTTP 同步必超时。因此采用「任务后台化 + 轮询」：
+
+- `POST /api/task/start` → 起后台线程跑改造后的 `process(on_progress, cancel_event)`，立即返回 `task_id`
+- 前端每 2 秒轮询 `GET /api/task/{id}/progress`，含 `status`（任务级）、`phase`（子阶段 running/sleeping/retry）、processed/total、matched、当前学校、剩余秒
+- 暂停：设 `cancel_event` → 线程在可中断 sleep 的下个检查点抛 `TaskCancelled` → 状态置 `paused`（progress.db 记录保留）
+- 取消：同上但删除 progress.db 记录
+- 恢复：`/history` 选续传项 → 写回 config.json → 配置页点「开始抓取」，`process` 自动读 progress.db 续传
+
+### 对核心文件的改造（保留 CLI 向后兼容）
+
+- `process.py`：`process()` 新增可选参数 `on_progress`（进度回调）、`cancel_event`（取消信号）、`output_dir`；新增 `_interruptible_sleep`（每秒检查取消，替代 30s/600s 的硬 sleep）；定义 `TaskCancelled` 异常。不传新参数时行为与原 CLI 完全一致。
+- `guess.py`：抽出 `predict(history, want_year)` 函数，返回回归参数 + 散点/拟合线坐标，供 `/api/predict` 绘图；`__main__` 保留脚本式用法。
+- `Get_informations/GetScore.py`：模块级全局 sqlite 连接改为函数内局部连接（多线程必需，否则子线程首调即报 `check_same_thread`）。
+- `Get_informations/Getpage.py`：修复风控时 `data` 未定义的 `UnboundLocalError`，改为抛明确的 `RateLimitError`，由上层 `process` 的 except 捕获后重试。
+

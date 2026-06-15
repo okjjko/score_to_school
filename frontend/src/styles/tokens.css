@@ -1,0 +1,50 @@
+/* Claude 设计系统 token → CSS 变量（全前端样式唯一源头） */
+:root {
+  /* surfaces */
+  --c-canvas: #faf9f5;
+  --c-surface-soft: #f5f0e8;
+  --c-surface-card: #efe9de;
+  --c-surface-cream-strong: #e8e0d2;
+  --c-surface-dark: #181715;
+  --c-surface-dark-elevated: #252320;
+  --c-surface-dark-soft: #1f1e1b;
+
+  /* ink / text */
+  --c-ink: #141413;
+  --c-body: #3d3d3a;
+  --c-body-strong: #252523;
+  --c-muted: #6c6a64;
+  --c-muted-soft: #8e8b82;
+
+  /* hairlines */
+  --c-hairline: #e6dfd8;
+  --c-hairline-soft: #ebe6df;
+
+  /* brand */
+  --c-primary: #cc785c;
+  --c-primary-active: #a9583e;
+  --c-primary-disabled: #e6dfd8;
+  --c-on-primary: #ffffff;
+  --c-on-dark: #faf9f5;
+  --c-on-dark-soft: #a09d96;
+
+  /* semantic / accent */
+  --c-success: #5db872;
+  --c-warning: #d4a017;
+  --c-error: #c64545;
+  --c-teal: #5db8a6;
+  --c-amber: #e8a55a;
+
+  /* radius */
+  --r-control: 8px;
+  --r-card: 12px;
+  --r-hero: 16px;
+  --r-pill: 999px;
+
+  /* shadow (rare) */
+  --shadow-soft: 0 1px 3px rgba(20, 20, 19, 0.08);
+
+  /* spacing scale (4px base) */
+  --sp-1: 4px;  --sp-2: 8px;  --sp-3: 12px; --sp-4: 16px;
+  --sp-6: 24px; --sp-8: 32px; --sp-12: 48px; --sp-16: 64px; --sp-24: 96px;
+}

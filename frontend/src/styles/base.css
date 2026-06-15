@@ -1,0 +1,42 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body, #app { height: 100%; margin: 0; }
+
+body {
+  background-color: var(--c-canvas);
+  color: var(--c-body);
+  font-family: Inter, 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4 {
+  font-family: 'Cormorant Garamond', 'Noto Serif SC', 'Songti SC', 'STSong', 'SimSun', 'Times New Roman', Georgia, serif;
+  font-weight: 400;          /* 衬线标题绝不加粗 */
+  color: var(--c-ink);
+  margin: 0;
+  letter-spacing: -0.5px;
+}
+
+/* 排版 utility */
+.t-display { font-family: 'Cormorant Garamond', 'Noto Serif SC', 'Songti SC', 'STSong', 'SimSun', 'Times New Roman', Georgia, serif; font-weight: 400; color: var(--c-ink); }
+.t-mono    { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+.t-caption-uppercase {
+  font-size: 12px; font-weight: 500; letter-spacing: 1.5px; text-transform: uppercase;
+}
+
+a { color: var(--c-primary); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+button { font-family: inherit; cursor: pointer; }
+
+/* 滚动条（深色卡片内） */
+.dark-scroll::-webkit-scrollbar { height: 8px; width: 8px; }
+.dark-scroll::-webkit-scrollbar-thumb { background: var(--c-surface-dark-elevated); border-radius: 999px; }
+.dark-scroll::-webkit-scrollbar-track { background: transparent; }
