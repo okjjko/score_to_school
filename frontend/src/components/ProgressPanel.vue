@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import type { TaskConfig } from '../api/endpoints'
 import DarkSurface from './ui/DarkSurface.vue'
 import CBadge from './ui/CBadge.vue'
@@ -53,6 +53,19 @@ const etaText = computed(() => {
 function onResume() {
   if (props.taskResumeCfg) task.start(props.taskResumeCfg)
 }
+
+const pausing = ref(false)
+const cancelling = ref(false)
+async function onPause() {
+  if (pausing.value) return
+  pausing.value = true
+  try { await task.pause() } catch {}
+}
+async function onCancel() {
+  if (cancelling.value) return
+  cancelling.value = true
+  try { await task.cancel() } catch {}
+}
 </script>
 
 <template>
@@ -95,8 +108,12 @@ function onResume() {
     <!-- 操作 -->
     <div class="actions" v-if="p?.status !== 'done' && p?.status !== 'error' && p?.status !== 'cancelled'">
       <CButton v-if="p?.status === 'paused'" variant="primary" @click="onResume">恢复抓取</CButton>
-      <CButton v-else variant="secondary" @click="task.pause()">暂停</CButton>
-      <CButton variant="ghost" @click="task.cancel()">取消任务</CButton>
+      <CButton v-else variant="secondary-dark" :disabled="pausing" @click="onPause">
+        {{ pausing ? '暂停中…' : '暂停' }}
+      </CButton>
+      <CButton variant="ghost-dark" :disabled="cancelling" @click="onCancel">
+        {{ cancelling ? '取消中…' : '取消任务' }}
+      </CButton>
     </div>
     <div v-else-if="p?.status === 'done'" class="done-box">
       <CButton variant="primary" @click="emit('view-results')">查看结果</CButton>

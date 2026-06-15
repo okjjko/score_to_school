@@ -1,6 +1,6 @@
 <script setup lang="ts">
 withDefaults(defineProps<{
-  variant?: 'primary' | 'secondary' | 'ghost'
+  variant?: 'primary' | 'secondary' | 'ghost' | 'secondary-dark' | 'ghost-dark'
   disabled?: boolean
 }>(), { variant: 'primary', disabled: false })
 </script>
@@ -30,10 +30,13 @@ withDefaults(defineProps<{
 .c-btn--secondary:hover { border-color: var(--c-muted-soft); }
 .c-btn--ghost { background: transparent; color: var(--c-ink); }
 .c-btn--ghost:hover { background: var(--c-surface-card); }
+/* 深色面板（DarkSurface）专用：避免深色文字落在深色背景上隐形 */
+.c-btn--secondary-dark { background: var(--c-surface-dark-elevated); color: var(--c-on-dark); border-color: var(--c-surface-dark-soft); }
+.c-btn--secondary-dark:hover { background: var(--c-surface-dark-soft); }
+.c-btn--ghost-dark { background: transparent; color: var(--c-on-dark); border-color: var(--c-surface-dark-soft); }
+.c-btn--ghost-dark:hover { background: var(--c-surface-dark-elevated); color: var(--c-on-dark); }
 .is-disabled {
-  background: var(--c-primary-disabled) !important;
-  color: var(--c-muted) !important;
+  opacity: .45 !important;
   cursor: not-allowed !important;
-  border-color: transparent !important;
 }
 </style>
