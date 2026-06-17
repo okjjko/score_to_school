@@ -33,7 +33,7 @@ onMounted(() => {
             custom
             v-slot="{ navigate, isExactActive }"
           >
-            <a class="nav-link" :class="{ active: isExactActive }" :href="l.to" @click.prevent="navigate">{{ l.label }}</a>
+            <a class="nav-link" :class="{ active: isExactActive }" :href="l.to" @click="navigate">{{ l.label }}</a>
           </RouterLink>
         </nav>
       </div>

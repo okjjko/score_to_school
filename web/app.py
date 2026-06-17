@@ -9,22 +9,27 @@ for _stream in (sys.stdout, sys.stderr):
     except Exception:
         pass
 
+# 计算项目根（本文件位于 web/app.py），加入 sys.path。
+# 这样无论「python app.py」直接运行，还是「python -m uvicorn web.app:app」，都能 import web 包。
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, _PROJECT_ROOT)
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .paths import PROJECT_ROOT
+# 用绝对导入（web.xxx），兼容直接运行脚本（相对导入在 __main__ 下会失败）
+from web.paths import PROJECT_ROOT
 
 # 兜底：让 process.py 内部的相对路径（schoolid.json / progress.db）在任意 cwd 启动下都能工作
 os.chdir(PROJECT_ROOT)
-if PROJECT_ROOT not in sys.path:
-    sys.path.insert(0, PROJECT_ROOT)
 
-from . import task_manager
-from .routes import config as config_routes
-from .routes import task as task_routes
-from .routes import resume as resume_routes
-from .routes import predict as predict_routes
-from .routes import results as results_routes
+from web import task_manager
+from web.routes import config as config_routes
+from web.routes import task as task_routes
+from web.routes import resume as resume_routes
+from web.routes import predict as predict_routes
+from web.routes import results as results_routes
 
 
 @asynccontextmanager
@@ -61,6 +66,12 @@ app.include_router(results_routes.router, prefix='/api')
 
 print('=' * 64)
 print('score_to_school API 已启动')
-print('[注意] 请以「单 worker」运行：uvicorn web.app:app --port 8000')
-print('       多 worker 会让任务状态分裂（任务字典保存在进程内）。')
+print('直接运行：python app.py      |   生产推荐：python -m uvicorn web.app:app --port 8000')
+print('[注意] 务必单 worker：任务字典保存在进程内，多 worker 会状态分裂。')
 print('=' * 64)
+
+
+# 支持直接 `python app.py` 启动（开发用，不支持 --reload）
+if __name__ == '__main__':
+    import uvicorn
+    uvicorn.run(app, host='127.0.0.1', port=8000)

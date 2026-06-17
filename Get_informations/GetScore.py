@@ -33,8 +33,8 @@ def getScore(schoolId, provinceId, year):
         result = cursor.fetchone()
 
         if result:
-            # 如果在数据库中找到数据，直接返回
-            return json.loads(result[0])
+            # 如果在数据库中找到数据，直接返回（from_cache=True）
+            return json.loads(result[0]), True
 
         # 从API获取数据
         page = 0
@@ -53,6 +53,6 @@ def getScore(schoolId, provinceId, year):
                        (schoolId, provinceId, year, json.dumps(all_data, ensure_ascii=False)))
         conn.commit()
 
-        return all_data
+        return all_data, False
     finally:
         conn.close()

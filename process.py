@@ -148,8 +148,8 @@ def process(province_id, want, year, thread_num, ethnic_minority, output, rank,
                                   want, year, rank, processed_schools, results)
                 continue
 
-            # 获取学校数据
-            all_score = GetScore.getScore(schoolId=school_id, provinceId=province_id, year=year)
+            # 获取学校数据（from_cache=True 表示命中缓存，无需反爬延迟）
+            all_score, from_cache = GetScore.getScore(schoolId=school_id, provinceId=province_id, year=year)
             majors = all_score.get("item", [])
 
             # 处理专业数据
@@ -163,9 +163,9 @@ def process(province_id, want, year, thread_num, ethnic_minority, output, rank,
                     except ValueError:
                         continue
 
-                # 检查专业条件
+                # 检查专业条件（默认排除专项计划；仅 ethnic_minority=True 时保留专项）
                 if (want in major["spname"] and
-                    ("专项" in major["spname"] or not ethnic_minority) and
+                    (not ("专项" in major["spname"]) or ethnic_minority) and
                     abs(min_section - rank) < 3000):
                     school_results.append({major["spname"]: {"min": major["min"], "min_section": major["min_section"]}})
 
@@ -181,15 +181,16 @@ def process(province_id, want, year, thread_num, ethnic_minority, output, rank,
 
             _emit("running", school=school_name)
 
-            # 控制请求频率
-            times += 1
-            if times % 10 == 0:
-                print("处理了10所学校，暂停30秒...")
-                _emit("sleeping", school=school_name, remaining_sec=30)
-                _interruptible_sleep(30, cancel_event,
-                                     tick=lambda r: _emit("sleeping", school=school_name, remaining_sec=r))
-            else:
-                time.sleep(random.uniform(0.1, 0.3))
+            # 控制请求频率（仅对真实 API 请求；缓存命中跳过反爬延迟，重跑可秒级完成）
+            if not from_cache:
+                times += 1
+                if times % 10 == 0:
+                    print("处理了10所学校，暂停30秒...")
+                    _emit("sleeping", school=school_name, remaining_sec=30)
+                    _interruptible_sleep(30, cancel_event,
+                                         tick=lambda r: _emit("sleeping", school=school_name, remaining_sec=r))
+                else:
+                    time.sleep(random.uniform(0.1, 0.3))
 
         except TaskCancelled:
             # 取消时不更新进度（当前状态已落盘），直接向上抛出
