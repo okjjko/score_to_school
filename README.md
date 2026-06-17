@@ -145,8 +145,6 @@ What's more…
 
 转载请注明**作者**。
 
-如果你喜欢，可以点一个 star 或请我喝瓶可乐，欢迎提交 PR。
-
 ## License
 
 [GPL-3.0](./LICENSE)
