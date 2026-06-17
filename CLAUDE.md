@@ -95,13 +95,14 @@ npm run dev   # http://localhost:5173 ，自动代理 /api -> :8000
 
 ```
 web/                        # FastAPI 后端，复用现有 Python 逻辑
-  app.py                    # FastAPI 入口：CORS、路由注册、chdir 到项目根、单 worker 警告
-  task_manager.py           # 任务字典 + 后台线程 + cancel_event + 暂停/取消状态机
+  app.py                    # FastAPI 入口：CORS、路由注册、chdir 到项目根、单 worker 警告、lifespan 启动重建任务
+  task_manager.py           # 任务字典 + 后台线程 + cancel_event + 暂停/取消状态机 + task_state 落盘/启动重建
+  task_state_store.py       # progress.db 内 task_state 表 CRUD（任务级 status+cfg，服务重启后识别曾运行任务）
   config_io.py              # config.json 读写
-  progress_adapter.py       # progress.db 读写（断点续传列表/删除）
+  progress_adapter.py       # progress.db 的 progress 表读写（断点续传列表/删除）
   results_repo.py           # 扫描 *_学校分数排行.json、读单文件（路径白名单防穿越）
   meta.py                   # 31 省 ID↔名称、学校数统计
-  routes/                   # /api/config /api/task/* /api/resume /api/results /api/predict
+  routes/                   # /api/config /api/task（list） /api/task/{id}/* /api/resume /api/results /api/predict
 frontend/                   # Vue 3 + Vite + Pinia + Vue Router + Tailwind + ECharts
   src/styles/{tokens,fonts,base}.css   # 设计 token → CSS 变量（样式唯一源头）
   src/components/ui/        # CButton/CCard/DarkSurface/CInput/CSelect/CBadge/CTabs/CProgress/CSwitch
@@ -113,10 +114,19 @@ frontend/                   # Vue 3 + Vite + Pinia + Vue Router + Tailwind + ECh
 抓取单次可运行数小时（反爬限速 + 风控），HTTP 同步必超时。因此采用「任务后台化 + 轮询」：
 
 - `POST /api/task/start` → 起后台线程跑改造后的 `process(on_progress, cancel_event)`，立即返回 `task_id`
-- 前端每 2 秒轮询 `GET /api/task/{id}/progress`，含 `status`（任务级）、`phase`（子阶段 running/sleeping/retry）、processed/total、matched、当前学校、剩余秒
+- 前端每 2 秒轮询 `GET /api/task/{id}/progress`，含 `status`（任务级）、`phase`（子阶段 running/sleeping/retry）、processed/total、matched、当前学校、剩余秒、`cfg`、`is_resumable`
 - 暂停：设 `cancel_event` → 线程在可中断 sleep 的下个检查点抛 `TaskCancelled` → 状态置 `paused`（progress.db 记录保留）
-- 取消：同上但删除 progress.db 记录
+- 取消：同上但删除 progress.db 记录与 task_state 记录
 - 恢复：`/history` 选续传项 → 写回 config.json → 配置页点「开始抓取」，`process` 自动读 progress.db 续传
+
+**状态机（含 `interrupted`）**：running/pausing/paused/cancelling/cancelled/done/error + interrupted。`task_id = {province_id}_{want}_{year}_{rank}`，同时是前端轮询钥匙、`_tasks` 主键、progress.db 的 progress/task_state 表主键，三处同源。
+
+**任务状态持久化（浏览器刷新 / 服务端重启恢复）**：
+- `_tasks` 仍在进程内，但每次状态转移（start/pause/cancel/done/error）同步落盘到 progress.db 的 `task_state` 表（status + 完整 TaskConfig + 时间戳）。progress 表（每校写的断点续传）与 task_state 表（任务级状态）职责分离，共享 WAL、各自独立锁。
+- **服务重启恢复（L2）**：`app.py` 的 FastAPI lifespan startup 调 `task_manager.restore_on_startup()`，把曾 running/pausing/cancelling 的任务重建为 `interrupted`（线程已死，不复活线程）、paused 保留、终态跳过。`GET /api/task` 暴露 `list_tasks()` 返回含 cfg 的任务摘要。
+- **浏览器刷新恢复（L1）**：前端把 `task_id` 存 localStorage；`App.vue` onMounted 调 `task.autoTakeover()` → `listTasks` 校验 → running 则接管轮询（**只接管轮询，不自动重 start**）、interrupted 则在进度面板显示「恢复抓取」按钮。用户点恢复 = `start_task(同 cfg)`，process 自动读 progress.db 跳过已处理学校。
+- 轮询遇 404（任务被清/重启无此 task）→ `refreshFromList()` 用列表兜底，找不到则优雅回 idle。
+- 单 worker 仍是硬约束；多标签页同任务只读轮询无害，但各开不同抓取会并行请求触发风控。
 
 ### 对核心文件的改造（保留 CLI 向后兼容）
 

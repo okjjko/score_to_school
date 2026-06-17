@@ -14,6 +14,13 @@ def start(cfg: TaskConfig):
     return {'task_id': task_id, 'status': 'running'}
 
 
+# 列出所有任务（运行中 / paused / interrupted 可恢复）。
+# 路径为空串 → 实际匹配 /api/task；与 /{task_id}/progress 段数不同，不会被 path 参数吞掉。
+@router.get('')
+def list_tasks(include_finished: bool = False):
+    return task_manager.list_tasks(include_finished=include_finished)
+
+
 @router.get('/{task_id}/progress')
 def progress(task_id: str):
     p = task_manager.get_progress(task_id)

@@ -34,6 +34,7 @@ const statusLabel = computed(() => {
   const map: Record<string, string> = {
     running: '运行中', pausing: '暂停中', paused: '已暂停',
     cancelling: '取消中', cancelled: '已取消',
+    interrupted: '已中断（服务端重启）',
     done: '已完成', error: '出错',
   }
   return map[s || ''] || s || ''
@@ -105,10 +106,15 @@ async function onCancel() {
 
     <div v-if="p?.error" class="error-box">{{ p.error }}</div>
 
+    <!-- 中断提示：服务端重启后任务停止，可从断点继续 -->
+    <div v-if="p?.status === 'interrupted'" class="info-box">
+      服务端已重启，任务在此停止。点击「恢复抓取」将从上次断点（已处理 {{ p?.processed || 0 }} 所学校）继续。
+    </div>
+
     <!-- 操作 -->
     <div class="actions" v-if="p?.status !== 'done' && p?.status !== 'error' && p?.status !== 'cancelled'">
-      <CButton v-if="p?.status === 'paused'" variant="primary" @click="onResume">恢复抓取</CButton>
-      <CButton v-else variant="secondary-dark" :disabled="pausing" @click="onPause">
+      <CButton v-if="p?.status === 'paused' || p?.status === 'interrupted'" variant="primary" @click="onResume">恢复抓取</CButton>
+      <CButton v-if="p?.status !== 'interrupted'" variant="secondary-dark" :disabled="pausing" @click="onPause">
         {{ pausing ? '暂停中…' : '暂停' }}
       </CButton>
       <CButton variant="ghost-dark" :disabled="cancelling" @click="onCancel">
@@ -144,6 +150,12 @@ async function onCancel() {
   margin-top: 20px; padding: 12px 16px; border-radius: var(--r-control);
   background: rgba(198, 69, 69, 0.15); color: #f0a0a0; font-size: 14px;
   font-family: 'JetBrains Mono', monospace;
+}
+
+.info-box {
+  margin-top: 20px; padding: 12px 16px; border-radius: var(--r-control);
+  background: rgba(204, 120, 92, 0.18); color: #f0c8b8; font-size: 14px;
+  line-height: 1.6;
 }
 
 .actions { display: flex; gap: 12px; margin-top: 28px; flex-wrap: wrap; }

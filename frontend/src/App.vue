@@ -1,5 +1,7 @@
 <script setup lang="ts">
+import { onMounted } from 'vue'
 import { RouterLink, RouterView } from 'vue-router'
+import { useTaskStore } from './stores/task'
 
 const links = [
   { to: '/', label: '配置与抓取' },
@@ -7,6 +9,12 @@ const links = [
   { to: '/predict', label: '分数预测' },
   { to: '/history', label: '历史与续传' },
 ]
+
+// 应用启动时尝试接管上次未完成的任务（浏览器刷新/重新打开后无缝回到进度面板）
+const task = useTaskStore()
+onMounted(() => {
+  task.autoTakeover()
+})
 </script>
 
 <template>

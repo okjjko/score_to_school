@@ -48,6 +48,10 @@ const showProgress = computed(() => task.current !== null)
 const starting = ref(false)
 const errorMsg = ref('')
 
+// 续传用 cfg：优先取后端从 task_state 带回的原始 cfg（用户可能已改表单，
+// interrupted/paused 恢复必须用任务当初的参数，否则 task_id 不一致无法命中 progress.db）
+const resumeCfg = computed<TaskConfig>(() => task.current?.cfg || cfg.value)
+
 onMounted(async () => {
   await configStore.load()
   if (configStore.config) {
@@ -138,7 +142,7 @@ function viewResults() {
         <p v-if="errorMsg" class="error">{{ errorMsg }}</p>
 
         <div class="cta-row">
-          <CButton variant="primary" :disabled="starting || task.isRunning" @click="startScrape">
+          <CButton variant="primary" :disabled="starting || task.isRunning || task.resuming" @click="startScrape">
             {{ starting ? '启动中…' : '开始抓取' }}
           </CButton>
           <span class="hint text-muted">单任务可能运行数小时（反爬限速），可随时暂停与续传。</span>
@@ -147,7 +151,7 @@ function viewResults() {
 
       <!-- 进度面板 -->
       <div v-if="showProgress" class="progress-col">
-        <ProgressPanel :task-resume-cfg="cfg" @view-results="viewResults" />
+        <ProgressPanel :task-resume-cfg="resumeCfg" @view-results="viewResults" />
       </div>
       <!-- 未抓取时的占位引导（深色卡，呼应 hero 节奏） -->
       <div v-else class="progress-col">

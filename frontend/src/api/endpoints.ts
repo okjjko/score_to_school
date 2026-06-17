@@ -25,8 +25,13 @@ export interface Progress {
   remaining_sec: number | null
   message: string | null
   error: string | null
+  cfg?: TaskConfig | null
+  is_resumable?: boolean
   last_update?: number
 }
+
+/** GET /api/task 的返回项（结构与 Progress 一致，含 cfg 供恢复用）。 */
+export type TaskSummary = Progress
 
 export interface ResultFile { file: string; want: string; year: string; size_kb: number; mtime: number }
 
@@ -60,6 +65,8 @@ export const api = {
   getProvinces: () => http.get<Province[]>('/meta/provinces'),
   getSchoolsCount: () => http.get<SchoolsCount>('/meta/schools-count'),
   startTask: (cfg: TaskConfig) => http.post<{ task_id: string; status: string }>('/task/start', cfg),
+  listTasks: (includeFinished = false) =>
+    http.get<TaskSummary[]>(`/task${includeFinished ? '?include_finished=true' : ''}`),
   getProgress: (id: string) => http.get<Progress>(`/task/${id}/progress`),
   pauseTask: (id: string) => http.post<{ ok: boolean }>(`/task/${id}/pause`),
   cancelTask: (id: string) => http.post<{ ok: boolean }>(`/task/${id}/cancel`),

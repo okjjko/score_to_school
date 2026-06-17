@@ -1,5 +1,6 @@
 import os
 import sys
+from contextlib import asynccontextmanager
 
 # Windows 控制台默认 GBK，强制 stdout/stderr 用 utf-8，避免 print 中文/符号时 UnicodeEncodeError
 for _stream in (sys.stdout, sys.stderr):
@@ -18,13 +19,25 @@ os.chdir(PROJECT_ROOT)
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
+from . import task_manager
 from .routes import config as config_routes
 from .routes import task as task_routes
 from .routes import resume as resume_routes
 from .routes import predict as predict_routes
 from .routes import results as results_routes
 
-app = FastAPI(title='score_to_school API', version='1.0.0')
+
+@asynccontextmanager
+async def lifespan(app):
+    # 启动时把落盘的"曾运行"任务重建进进程内字典，标记为可恢复态
+    try:
+        task_manager.restore_on_startup()
+    except Exception as e:
+        print(f'[task_state] 启动重建异常（忽略）: {e}')
+    yield
+
+
+app = FastAPI(title='score_to_school API', version='1.0.0', lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,

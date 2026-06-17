@@ -45,3 +45,20 @@ class ResumeItem(BaseModel):
     rank: int
     processed_count: int
     results_count: int
+
+
+class TaskSummary(BaseModel):
+    """任务摘要 —— GET /api/task 返回项（也复用于 progress 响应）。"""
+    task_id: str
+    status: str
+    phase: Optional[str] = None
+    processed: int = 0
+    total: int = 0
+    matched: int = 0
+    school: Optional[str] = None
+    remaining_sec: Optional[float] = None
+    message: Optional[str] = None
+    error: Optional[str] = None
+    cfg: Optional[TaskConfig] = None
+    is_resumable: bool = False
+    last_update: Optional[float] = None

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { api, type ResumeItem, type ResultFile } from '../api/endpoints'
+import { api, type ResumeItem, type ResultFile, type TaskSummary } from '../api/endpoints'
 import { useTaskStore } from '../stores/task'
 import CCard from '../components/ui/CCard.vue'
 import CButton from '../components/ui/CButton.vue'
@@ -11,11 +11,13 @@ const router = useRouter()
 const task = useTaskStore()
 
 const resumes = ref<ResumeItem[]>([])
+// 进程内可恢复任务（interrupted=服务端重启、paused=手动暂停）；含完整 cfg，可一键起线程续传
+const liveTasks = ref<TaskSummary[]>([])
 const files = ref<ResultFile[]>([])
 const provinceMap = ref<Record<string, string>>({})
 
-function provName(id: string) {
-  return provinceMap.value[id] || id
+function provName(id: string | number) {
+  return provinceMap.value[String(id)] || String(id)
 }
 function fmtTime(ts: number) {
   const d = new Date(ts * 1000)
@@ -26,6 +28,24 @@ function fmtTime(ts: number) {
 async function refresh() {
   resumes.value = await api.listResume()
   files.value = await api.listResults()
+  // 只展示可恢复态（interrupted/paused）；running 由配置页进度面板处理
+  try {
+    const all = await api.listTasks()
+    liveTasks.value = all.filter((t) => t.status === 'interrupted' || t.status === 'paused')
+  } catch {
+    liveTasks.value = []
+  }
+}
+
+// 恢复进程内可恢复任务：用 task_state 带回的完整 cfg 重新起线程（process 自动读 progress.db 续传）
+async function resumeLiveTask(item: TaskSummary) {
+  if (!item.cfg) return
+  try {
+    await task.start(item.cfg)
+    router.push('/')
+  } catch {
+    /* 409 等情况忽略，停留本页 */
+  }
 }
 
 async function resumeTask(item: ResumeItem) {
@@ -68,6 +88,27 @@ onMounted(async () => {
       <h1 style="font-size: 40px;">断点续传与历史结果</h1>
       <p class="text-muted mt-2">未完成的抓取任务可从此处恢复；历史结果文件可重新打开查看。</p>
     </section>
+
+    <!-- 可恢复任务（服务端重启后中断 / 手动暂停；含完整参数，一键续传） -->
+    <template v-if="liveTasks.length">
+      <h2 class="section-title">可恢复任务</h2>
+      <div class="resume-list">
+        <div v-for="t in liveTasks" :key="t.task_id" class="resume-item">
+          <div class="resume-info">
+            <div class="resume-title">{{ t.cfg?.want }}</div>
+            <div class="text-muted resume-sub mono">{{ provName(t.cfg?.province_id || '') }} · {{ t.cfg?.year }} · 位次 {{ t.cfg?.rank }}</div>
+            <div class="resume-badges">
+              <CBadge variant="warning">{{ t.status === 'interrupted' ? '服务端重启中断' : '已暂停' }}</CBadge>
+              <CBadge variant="teal">已处理 {{ t.processed }}</CBadge>
+              <CBadge v-if="t.matched" variant="coral">已匹配 {{ t.matched }}</CBadge>
+            </div>
+          </div>
+          <div class="resume-actions">
+            <CButton variant="primary" @click="resumeLiveTask(t)">恢复</CButton>
+          </div>
+        </div>
+      </div>
+    </template>
 
     <!-- 断点续传 -->
     <h2 class="section-title">断点续传</h2>
